@@ -14,6 +14,9 @@
     playerKind: null,
     hls: null,
     youtube: null,
+    localFile: null,
+    localObjectUrl: null,
+    sourceMode: "link",
     suppressSync: false,
     connectedPeers: new Set(),
     unread: 0
@@ -22,7 +25,10 @@
   const els = {
     home: $("#homeView"), invite: $("#inviteView"), room: $("#roomView"),
     form: $("#createForm"), streamUrl: $("#streamUrl"), enter: $("#enterRoomButton"),
-    empty: $("#playerEmpty"), video: $("#videoPlayer"), youtube: $("#youtubePlayer"),
+    linkPanel: $("#linkSourcePanel"), filePanel: $("#fileSourcePanel"), createFile: $("#createFileInput"),
+    chooseCreateFile: $("#chooseCreateFile"), createFileName: $("#createFileName"),
+    empty: $("#playerEmpty"), video: $("#videoPlayer"), youtube: $("#youtubePlayer"), iframe: $("#iframePlayer"),
+    localFilePlayer: $("#localFilePlayer"), roomFile: $("#roomFileInput"), selectRoomFile: $("#selectRoomFile"), localFileHint: $("#localFileHint"),
     unsupported: $("#unsupportedPlayer"), openStream: $("#openStreamLink"),
     sharePanel: $("#sharePanel"), share: $("#shareButton"), copy: $("#copyButton"),
     presence: $("#presence"), chatStatus: $("#chatStatus"), messages: $("#messages"),
@@ -60,12 +66,14 @@
 
   function encodeSource(url) {
     if (url === "https://stream.listopad.tj/football/index.m3u8") return "ftv";
+    if (url === "local") return "local";
     return `url-${btoa(unescape(encodeURIComponent(url)))}`;
   }
 
   function sourceFromUrl() {
     const source = new URLSearchParams(location.search).get("source");
     if (source === "ftv") return "https://stream.listopad.tj/football/index.m3u8";
+    if (source === "local") return "local";
     if (source?.startsWith("url-")) {
       try { return decodeURIComponent(escape(atob(source.slice(4)))); }
       catch { return ""; }
@@ -185,6 +193,9 @@
         state.streamUrl = payload.streamUrl;
         setupPlayer(state.streamUrl);
       }
+      if (payload.fileName && state.streamUrl === "local" && !state.localFile) {
+        els.localFileHint.textContent = `Выберите у себя тот же файл: ${payload.fileName}`;
+      }
       applyPlayback(payload.playback);
     }
     if (payload.type === "playback") applyPlayback(payload.playback);
@@ -202,7 +213,7 @@
   }
 
   function sendState() {
-    send({ type: "state", streamUrl: state.streamUrl, playback: getPlayback() });
+    send({ type: "state", streamUrl: state.streamUrl, fileName: state.localFile?.name || "", playback: getPlayback() });
   }
 
   async function applyPlayback(playback) {
@@ -241,13 +252,37 @@
 
   function setupPlayer(url) {
     els.empty.classList.add("hidden");
-    [els.video, els.youtube, els.unsupported].forEach((el) => el.classList.add("hidden"));
+    [els.video, els.youtube, els.iframe, els.unsupported, els.localFilePlayer].forEach((el) => el.classList.add("hidden"));
+    if (url === "local") return setupLocalChoice();
     const ytId = youtubeId(url);
     if (ytId) return setupYouTube(ytId);
-    if (/\.m3u8(?:$|\?)/i.test(url) || /\.mp4(?:$|\?)/i.test(url)) return setupVideo(url);
-    state.playerKind = "external";
+    if (/\.m3u8(?:$|\?)/i.test(url) || /\.(?:mp4|webm|ogg|mov)(?:$|\?)/i.test(url)) return setupVideo(url);
+    setupIframe(url);
+  }
+
+  function setupLocalChoice() {
+    if (state.localFile) return setupLocalFile(state.localFile);
+    state.playerKind = "local-pending";
+    els.localFilePlayer.classList.remove("hidden");
+  }
+
+  function setupLocalFile(file) {
+    if (state.localObjectUrl) URL.revokeObjectURL(state.localObjectUrl);
+    state.localFile = file;
+    state.localObjectUrl = URL.createObjectURL(file);
+    els.localFilePlayer.classList.add("hidden");
+    setupVideo(state.localObjectUrl);
+    toast("Фильм готов к совместному просмотру 🎬");
+    if (state.role === "host") sendState();
+    else send({ type: "request-state" });
+  }
+
+  function setupIframe(url) {
+    state.playerKind = "iframe";
+    els.iframe.src = url;
+    els.iframe.classList.remove("hidden");
     els.openStream.href = url;
-    els.unsupported.classList.remove("hidden");
+    toast("Источник встроен; управление зависит от его сайта");
   }
 
   function setupVideo(url) {
@@ -345,14 +380,36 @@
 
   els.form.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (state.sourceMode === "file" && !state.localFile) return toast("Сначала выберите фильм");
+    if (state.sourceMode === "link" && !els.streamUrl.value.trim()) return toast("Вставьте ссылку для просмотра");
     state.roomId = randomId();
     state.role = "host";
     state.name = "Хусрав";
-    state.streamUrl = normalizeStreamUrl(els.streamUrl.value.trim());
+    state.streamUrl = state.sourceMode === "file" ? "local" : normalizeStreamUrl(els.streamUrl.value.trim());
     saveHostRoom();
     history.pushState({}, "", `#/room/${state.roomId}`);
     els.sharePanel.classList.remove("hidden");
     enterRoom();
+  });
+
+  document.querySelectorAll("[data-source-tab]").forEach((button) => button.addEventListener("click", () => {
+    state.sourceMode = button.dataset.sourceTab;
+    document.querySelectorAll("[data-source-tab]").forEach((item) => item.classList.toggle("active", item === button));
+    els.linkPanel.classList.toggle("hidden", state.sourceMode !== "link");
+    els.filePanel.classList.toggle("hidden", state.sourceMode !== "file");
+  }));
+  els.chooseCreateFile.addEventListener("click", () => els.createFile.click());
+  els.createFile.addEventListener("change", () => {
+    const file = els.createFile.files?.[0];
+    if (!file) return;
+    state.localFile = file;
+    els.createFileName.textContent = `Выбран фильм: ${file.name}`;
+    els.createFileName.classList.remove("hidden");
+  });
+  els.selectRoomFile.addEventListener("click", () => els.roomFile.click());
+  els.roomFile.addEventListener("change", () => {
+    const file = els.roomFile.files?.[0];
+    if (file) setupLocalFile(file);
   });
 
   els.enter.addEventListener("click", enterRoom);

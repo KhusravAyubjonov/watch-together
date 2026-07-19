@@ -33,12 +33,24 @@
         <p class="hero-copy">Создай наш вечер, добавь трансляцию и отправь Азизашке одну красивую ссылку. Остальное сделает любовь.</p>
 
         <form id="createForm" class="create-card">
-          <label for="streamUrl">Ссылка на трансляцию</label>
-          <div class="input-wrap">
-            <span class="input-icon">▶</span>
-            <input id="streamUrl" type="url" required autocomplete="url" placeholder="YouTube, .m3u8 или .mp4" />
+          <div class="source-tabs" role="tablist" aria-label="Источник просмотра">
+            <button type="button" class="active" data-source-tab="link">Ссылка</button>
+            <button type="button" data-source-tab="file">Фильм с устройства</button>
           </div>
-          <p class="field-note">Поддерживаются YouTube и прямые разрешённые ссылки HLS/MP4.</p>
+          <div id="linkSourcePanel">
+            <label for="streamUrl">Ссылка на трансляцию или фильм</label>
+            <div class="input-wrap">
+              <span class="input-icon">▶</span>
+              <input id="streamUrl" type="url" autocomplete="url" placeholder="YouTube, сайт, .m3u8, .mp4 или .webm" />
+            </div>
+            <p class="field-note">Неизвестный сайт откроется внутри комнаты, если он разрешает iframe.</p>
+          </div>
+          <div id="fileSourcePanel" class="hidden">
+            <label>Фильм с телефона или компьютера</label>
+            <input id="createFileInput" class="visually-hidden" type="file" accept="video/*,.mkv" />
+            <button id="chooseCreateFile" class="file-picker" type="button"><span>＋</span><b>Выбрать видеофайл</b><small>Файл останется только на вашем устройстве</small></button>
+            <p id="createFileName" class="selected-file hidden"></p>
+          </div>
           <button class="primary-button" type="submit">Создать наш вечер <span>→</span></button>
         </form>
 
@@ -78,6 +90,14 @@
               </div>
               <video id="videoPlayer" class="media-player hidden" playsinline controls></video>
               <div id="youtubePlayer" class="youtube-player hidden"></div>
+              <iframe id="iframePlayer" class="iframe-player hidden" title="Встроенный источник" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+              <div id="localFilePlayer" class="local-file-player hidden">
+                <span>🎬</span>
+                <h3>Выберите фильм на этом устройстве</h3>
+                <p id="localFileHint">Азизашка должна выбрать такую же копию фильма у себя.</p>
+                <input id="roomFileInput" class="visually-hidden" type="file" accept="video/*,.mkv" />
+                <button id="selectRoomFile" class="secondary-button">Выбрать фильм</button>
+              </div>
               <div id="unsupportedPlayer" class="unsupported hidden">
                 <span>↗</span>
                 <h3>Трансляция откроется отдельно</h3>
