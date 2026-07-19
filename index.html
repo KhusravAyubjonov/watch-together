@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#12080d" />
+    <meta name="description" content="Приватная комната для совместного просмотра Хусрава и Азизашки" />
+    <title>Вместе, несмотря на расстояние</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/peerjs@1/dist/peerjs.min.js"></script>
+    <script defer src="config.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div id="petals" class="petals" aria-hidden="true"></div>
+
+    <main class="shell">
+      <header class="brand">
+        <a href="./" class="brand-mark" aria-label="На главную">Х <span>♡</span> А</a>
+        <p>наша маленькая вселенная</p>
+      </header>
+
+      <section id="homeView" class="view hero">
+        <div class="eyebrow"><span></span> Только для нас двоих</div>
+        <h1>Расстояние — это всего лишь пространство <em>между двумя объятиями.</em></h1>
+        <p class="hero-copy">Создай наш вечер, добавь трансляцию и отправь Азизашке одну красивую ссылку. Остальное сделает любовь.</p>
+
+        <form id="createForm" class="create-card">
+          <label for="streamUrl">Ссылка на трансляцию</label>
+          <div class="input-wrap">
+            <span class="input-icon">▶</span>
+            <input id="streamUrl" type="url" required autocomplete="url" placeholder="YouTube, .m3u8 или .mp4" />
+          </div>
+          <p class="field-note">Поддерживаются YouTube и прямые разрешённые ссылки HLS/MP4.</p>
+          <button class="primary-button" type="submit">Создать наш вечер <span>→</span></button>
+        </form>
+
+        <div class="promise-row">
+          <div><span>♡</span><p><strong>Приватно</strong>Случайная ссылка комнаты</p></div>
+          <div><span>⌁</span><p><strong>Синхронно</strong>Один момент на двоих</p></div>
+          <div><span>✦</span><p><strong>Красиво</strong>Чат, эмоции и цветы</p></div>
+        </div>
+      </section>
+
+      <section id="inviteView" class="view invite-view hidden">
+        <div class="invite-card">
+          <div class="rose-seal">🌹</div>
+          <p class="eyebrow centered">Особенное приглашение</p>
+          <h2>Азизашка, тебя здесь ждали</h2>
+          <p>Хусрав приготовил вечер только для вас двоих. Сегодня километры становятся чуть меньше.</p>
+          <button id="enterRoomButton" class="primary-button">Войти к Хусраву <span>♡</span></button>
+          <small>Нажатие разрешит воспроизведение звука на телефоне</small>
+        </div>
+      </section>
+
+      <section id="roomView" class="view room-view hidden">
+        <div class="room-heading">
+          <div>
+            <p class="eyebrow"><span></span> Наш вечер</p>
+            <h2>Хусрав <i>♡</i> Азизашка</h2>
+          </div>
+          <div id="presence" class="presence"><span></span><b>Ожидаем Азизашку…</b></div>
+        </div>
+
+        <div class="room-grid">
+          <div class="watch-column">
+            <div class="player-shell">
+              <div id="playerEmpty" class="player-empty">
+                <div class="loader-heart">♡</div>
+                <p>Готовим ваш особенный вечер…</p>
+              </div>
+              <video id="videoPlayer" class="media-player hidden" playsinline controls></video>
+              <div id="youtubePlayer" class="youtube-player hidden"></div>
+              <div id="unsupportedPlayer" class="unsupported hidden">
+                <span>↗</span>
+                <h3>Трансляция откроется отдельно</h3>
+                <p>Этот сайт не разрешает встроить свой плеер.</p>
+                <a id="openStreamLink" class="secondary-button" target="_blank" rel="noopener">Открыть трансляцию</a>
+              </div>
+              <div id="reactionStage" class="reaction-stage" aria-live="polite"></div>
+            </div>
+
+            <div class="watch-toolbar">
+              <div class="reactions" aria-label="Реакции">
+                <button data-reaction="❤️" aria-label="Любовь">❤️</button>
+                <button data-reaction="🌹" aria-label="Роза">🌹</button>
+                <button data-reaction="😘" aria-label="Поцелуй">😘</button>
+                <button data-reaction="🔥" aria-label="Огонь">🔥</button>
+                <button data-reaction="⚽" aria-label="Гол">⚽</button>
+              </div>
+              <button id="syncButton" class="sync-button">⌁ Синхронизировать нас</button>
+            </div>
+
+            <div id="sharePanel" class="share-panel hidden">
+              <div>
+                <strong>Комната готова</strong>
+                <p>Отправь эту ссылку Азизашке</p>
+              </div>
+              <button id="shareButton" class="secondary-button">Поделиться</button>
+              <button id="copyButton" class="secondary-button ghost">Копировать</button>
+            </div>
+          </div>
+
+          <aside class="chat-card">
+            <div class="chat-header">
+              <div><span class="mini-heart">♡</span><div><strong>Наш чат</strong><small id="chatStatus">соединяем сердца…</small></div></div>
+              <button id="closeChatButton" aria-label="Закрыть чат">×</button>
+            </div>
+            <div id="messages" class="messages">
+              <div class="love-note"><span>❝</span><p>Где бы ты ни была, сегодня ты рядом со мной.</p><small>для Азизашки</small></div>
+            </div>
+            <form id="chatForm" class="chat-form">
+              <input id="messageInput" maxlength="500" autocomplete="off" placeholder="Напиши что-нибудь нежное…" />
+              <button type="submit" aria-label="Отправить">➤</button>
+            </form>
+          </aside>
+        </div>
+        <button id="mobileChatButton" class="mobile-chat-button">♡ Наш чат <span id="unreadBadge" class="hidden">0</span></button>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status"></div>
+  </body>
+</html>
